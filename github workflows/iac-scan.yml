@@ -1,0 +1,44 @@
+name: IaC Scans (Terraform/CFN) + OPA
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'iac/**'
+      - '.github/workflows/iac-scan.yml'
+  push:
+    branches: [ main ]
+    paths:
+      - 'iac/**'
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          pip install checkov
+          curl -sSL https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+          curl -L https://github.com/tenable/terrascan/releases/latest/download/terrascan_Linux_x86_64.tar.gz | tar -xz && sudo mv terrascan /usr/local/bin/
+          curl -L https://github.com/open-policy-agent/conftest/releases/latest/download/conftest_Linux_x86_64.tar.gz | tar -xz && sudo mv conftest /usr/local/bin/
+
+      - name: Run Checkov
+        run: checkov -d iac --soft-fail --output json | tee reports/checkov.json
+
+      - name: Run tfsec
+        run: tfsec iac/terraform --format json --out reports/tfsec.json || true
+
+      - name: Run Terrascan
+        run: terrascan scan -d iac -o json > reports/terrascan.json || true
+
+      - name: Run OPA policies
+        run: conftest test iac/terraform --policy iac/policies/terraform/opa --output=json > reports/conftest.json || true
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: iac-scan-reports
+          path: reports/*.json

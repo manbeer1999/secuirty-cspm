@@ -1,0 +1,20 @@
+name: Fetch kube-bench report
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'latest'
+      - name: Configure kubeconfig
+        run: echo "$KUBECONFIG_B64" | base64 -d > ~/.kube/config
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+      - name: Get kube-bench logs
+        run: kubectl -n security logs job/kube-bench-XXXXX > reports/kube-bench.json || true
