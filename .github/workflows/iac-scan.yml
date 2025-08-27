@@ -2,23 +2,29 @@ name: IaC Scan
 
 on:
   push:
-    branches:
-      - main       
-  workflow_dispatch: 
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   tfsec-scan:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 1.5.7   
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Run tfsec (IaC Security Scan)
-        uses: aquasecurity/tfsec-action@v1.0.3
+      - name: Set up Go
+        uses: actions/setup-go@v4
         with:
-          soft_fail: true   
+          go-version: 1.20
+
+      - name: Install tfsec
+        run: |
+          curl -sSL https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+
+      - name: Run tfsec
+        run: tfsec .
+
