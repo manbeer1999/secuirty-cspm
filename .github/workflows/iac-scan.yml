@@ -2,29 +2,35 @@ name: IaC Scan
 
 on:
   push:
-    branches:
-      - main
+    branches: [ "main" ]
   pull_request:
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
   tfsec-scan:
-    name: Run tfsec on Terraform code
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Setup cache
-        uses: actions/cache@v3
+      - name: Set up Go (needed for tfsec)
+        uses: actions/setup-go@v3
         with:
-          path: ~/.cache/tfsec
-          key: ${{ runner.os }}-tfsec
+          go-version: 1.19
 
       - name: Run tfsec
         uses: aquasecurity/tfsec-action@v1.0.3
         with:
-          soft_fail: true   
+          soft_fail: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Upload tfsec report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: tfsec-report
+          path: ./tfsec.json
+          if-no-files-found: ignore
 
