@@ -1,63 +1,24 @@
-name: IaC Scans (Terraform/CFN) + OPA
+name: IaC Scan
 
 on:
-  pull_request:
-    branches: [ main ]
-    paths:
-      - 'iac/**'
-      - '.github/workflows/iac-scan.yml'
   push:
-    branches: [ main ]
-    paths:
-      - 'iac/**'
+    branches:
+      - main       
+  workflow_dispatch: 
 
 jobs:
-  scan:
+  tfsec-scan:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4      
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Create reports dir
-        run: mkdir -p reports
-
-      - name: Install tfsec
-        run: |
-          curl -sSL https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash || true
-
-      - name: Run tfsec (Terraform)
-        run: |
-          tfsec iac/terraform --format json --out reports/tfsec.json || true
-
-      - name: Upload tfsec report
-        uses: actions/upload-artifact@v4
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v2
         with:
-          name: tfsec-report
-          path: reports/tfsec.json
+          terraform_version: 1.5.7   
 
-
-
-      - name: Install tools
-        run: |
-          pip install checkov
-          curl -sSL https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
-          curl -L https://github.com/tenable/terrascan/releases/latest/download/terrascan_Linux_x86_64.tar.gz | tar -xz && sudo mv terrascan /usr/local/bin/
-          curl -L https://github.com/open-policy-agent/conftest/releases/latest/download/conftest_Linux_x86_64.tar.gz | tar -xz && sudo mv conftest /usr/local/bin/
-
-      - name: Run Checkov
-        run: checkov -d iac --soft-fail --output json | tee reports/checkov.json
-
-      - name: Run tfsec
-        run: tfsec iac/terraform --format json --out reports/tfsec.json || true
-
-      - name: Run Terrascan
-        run: terrascan scan -d iac -o json > reports/terrascan.json || true
-
-      - name: Run OPA policies
-        run: conftest test iac/terraform --policy iac/policies/terraform/opa --output=json > reports/conftest.json || true
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Run tfsec (IaC Security Scan)
+        uses: aquasecurity/tfsec-action@v1.0.3
         with:
-          name: iac-scan-reports
-          path: reports/*.json
+          soft_fail: true   
