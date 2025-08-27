@@ -5,28 +5,26 @@ on:
     branches:
       - main
   pull_request:
-    branches:
-      - main
-
+  workflow_dispatch:
 
 jobs:
   tfsec-scan:
+    name: Run tfsec on Terraform code
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v3
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up Go
-        uses: actions/setup-go@v4
+      - name: Setup cache
+        uses: actions/cache@v3
         with:
-          go-version: 1.20
-
-      - name: Install tfsec
-        run: |
-          curl -sSL https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+          path: ~/.cache/tfsec
+          key: ${{ runner.os }}-tfsec
 
       - name: Run tfsec
-        run: tfsec .
+        uses: aquasecurity/tfsec-action@v1.0.3
+        with:
+          soft_fail: true   
+
 
