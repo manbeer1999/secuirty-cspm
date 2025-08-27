@@ -1,19 +1,22 @@
-name: Kube-bench CI
+name: Kube-Bench Scan
 
 on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
   kube-bench:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v3
 
-      # Dummy step instead of real kube-bench
-      - name: Dummy kube-bench run
+      - name: Dummy Step (Always Pass)
         run: |
-          echo "✅ Simulating kube-bench run..."
-          echo "No real cluster connected, skipping actual kube-bench."
-          exit 0
-
+          echo "✅ Dummy kube-bench step running..."
+          echo "Skipping real kube-bench scan in this demo workflow."
+          echo "Workflow will always succeed."
