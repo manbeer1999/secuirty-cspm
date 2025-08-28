@@ -2,26 +2,58 @@ name: IaC Scan
 
 on:
   push:
+    branches: [ "main" ]
     paths:
       - '**/*.tf'
+      - '.github/workflows/iac-scan.yml'
   pull_request:
+    branches: [ "main" ]
     paths:
       - '**/*.tf'
+      - '.github/workflows/iac-scan.yml'
+  workflow_dispatch:
 
 jobs:
   tfsec-scan:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write      
+      actions: read
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Run tfsec (Terraform Security Scan)
+      - name: Install tfsec
         run: |
-          mkdir -p reports
-          tfsec . --format json --out reports/tfsec.json || true
+          curl -sSL https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
 
-      - name: Upload tfsec report
+      - name: Run tfsec (create JSON)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p reports docs
+          tfsec . --format json --out reports/tfsec.json || true
+          
+          cp reports/tfsec.json docs/tfsec.json || true
+
+      - name: Upload tfsec report artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: tfsec-report
           path: reports/tfsec.json
+          if-no-files-found: warn
+
+      - name: Commit report into repo (reports/ & docs/)
+        if: always()
+        run: |
+          
+          if [[ -n "$(git status --porcelain reports docs)" ]]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add reports/tfsec.json docs/tfsec.json
+            git commit -m "ci: update tfsec report [skip ci]"
+            git push origin HEAD:main
+          else
+            echo "No report changes to commit"
+          fi

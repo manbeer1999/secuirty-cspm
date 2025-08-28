@@ -2,18 +2,18 @@ name: Kube Bench
 
 on:
   push:
-    paths:
-      - 'kubernetes/**'
+    branches: [ "main" ]
   pull_request:
-    paths:
-      - 'kubernetes/**'
+    branches: [ "main" ]
+  workflow_dispatch:
 
 jobs:
   kube-bench:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Dummy kube-bench step (placeholder)
-        run: echo "Kube-bench would run here on real cluster"
+      - name: Dummy kube-bench step (always pass)
+        run: |
+          echo "Skipping real kube-bench in demo."
+          echo "✅ This job is intentionally green."
