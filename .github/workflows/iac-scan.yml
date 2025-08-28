@@ -1,34 +1,32 @@
-name: IaC Security Scan (tfsec)
+name: Terraform Security Scan
 
 on:
   push:
     branches:
       - main
-    paths:
-      - '**.tf'
-      - .github/workflows/tfsec.yml
 
 jobs:
-  tfsec-scan:
+  tfsec:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repo
+      - name: Checkout code
         uses: actions/checkout@v3
 
       - name: Setup tfsec
         run: |
-          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install.sh | bash
-          sudo mv tfsec /usr/local/bin/
-
-      - name: Run tfsec scan
-        run: |
+          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
           mkdir -p docs
-          tfsec . --format json > docs/tfsec.json
 
-      - name: Commit tfsec report
+      - name: Run tfsec and save report
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          ./tfsec . --format json > docs/tfsec.json
+          cat docs/tfsec.json
+
+      - name: Commit tfsec.json
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
           git add docs/tfsec.json
-          git commit -m "chore: update tfsec report [skip ci]" || echo "No changes to commit"
+          git commit -m "chore: update tfsec report" || echo "No changes to commit"
           git push
