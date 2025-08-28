@@ -1,27 +1,29 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
 provider "aws" {
   region = "us-east-1"
 }
 
-# Example: Insecure Security Group (tfsec should flag open 0.0.0.0/0 ingress)
+# Intentionally insecure S3 bucket (no encryption, public access)
+resource "aws_s3_bucket" "insecure_bucket" {
+  bucket = "manbeer-insecure-bucket-demo"
+  acl    = "public-read"   # ⚠️ tfsec warning: public bucket
+
+  tags = {
+    Name = "InsecureBucket"
+    Env  = "dev"
+  }
+}
+
+# Security Group with wide open ingress (0.0.0.0/0)
 resource "aws_security_group" "insecure_sg" {
   name        = "insecure-sg"
-  description = "Security group with open ingress"
+  description = "Allow all inbound traffic - insecure example"
+  vpc_id      = "vpc-123456"  # replace with your vpc id or dummy
 
   ingress {
-    description = "SSH from anywhere"
-    from_port   = 22
-    to_port     = 22
+    from_port   = 0
+    to_port     = 65535
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]   # <-- tfsec will warn
+    cidr_blocks = ["0.0.0.0/0"]   # ⚠️ tfsec warning: unrestricted ingress
   }
 
   egress {
@@ -30,14 +32,4 @@ resource "aws_security_group" "insecure_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-}
-
-# Example: S3 bucket without encryption (tfsec should flag)
-resource "aws_s3_bucket" "insecure_bucket" {
-  bucket = "my-insecure-bucket-${random_id.rand.hex}"
-  acl    = "public-read"   # <-- tfsec will warn
-}
-
-resource "random_id" "rand" {
-  byte_length = 4
 }
