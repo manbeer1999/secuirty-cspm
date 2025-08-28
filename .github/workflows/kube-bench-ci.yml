@@ -1,22 +1,19 @@
-name: Kube-Bench Scan
+name: Kube Bench
 
 on:
   push:
-    branches: [ "main" ]
+    paths:
+      - 'kubernetes/**'
   pull_request:
-    branches: [ "main" ]
-  workflow_dispatch:
+    paths:
+      - 'kubernetes/**'
 
 jobs:
   kube-bench:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Dummy Step (Always Pass)
-        run: |
-          echo "✅ Dummy kube-bench step running..."
-          echo "Skipping real kube-bench scan in this demo workflow."
-          echo "Workflow will always succeed."
+      - name: Dummy kube-bench step (placeholder)
+        run: echo "Kube-bench would run here on real cluster"
