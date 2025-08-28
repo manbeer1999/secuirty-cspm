@@ -1,69 +1,72 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>CSPM Dashboard</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta charset="UTF-8">
+  <title>CSPM Dashboard – tfsec Report</title>
   <style>
-    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell, Noto Sans, sans-serif;margin:24px;line-height:1.4;}
-    .card{border:1px solid #ddd;border-radius:12px;padding:16px;margin-bottom:16px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
-    .muted{color:#666}
-    table{width:100%;border-collapse:collapse;margin-top:8px}
-    th,td{border:1px solid #eee;padding:8px;text-align:left}
-    th{background:#fafafa}
-    .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #ddd;margin-right:6px}
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background: #f4f4f4;
+      color: #333;
+    }
+    h1 {
+      color: #005f99;
+    }
+    pre {
+      background: #222;
+      color: #eee;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+    }
+    .finding {
+      background: #fff;
+      margin: 10px 0;
+      padding: 15px;
+      border-left: 5px solid #e74c3c;
+      border-radius: 5px;
+    }
+    .severity {
+      font-weight: bold;
+      text-transform: uppercase;
+    }
   </style>
 </head>
 <body>
   <h1>Cloud / IaC Security – CSPM Dashboard</h1>
-  <p class="muted">tfsec findings below are auto-updated by GitHub Actions (JSON copied to <code>/docs/tfsec.json</code>).</p>
-
-  <div id="summary" class="card"><strong>Loading tfsec summary…</strong></div>
-  <div id="table" class="card"><strong>Loading findings…</strong></div>
+  <p>Below are <code>tfsec</code> findings auto-updated by GitHub Actions.</p>
+  <div id="report">Loading tfsec.json...</div>
 
   <script>
-    async function loadTfsec(){
-      try{
-        const res = await fetch('tfsec.json', {cache: 'no-store'});
-        if(!res.ok) throw new Error('No tfsec.json yet. Push a .tf change to generate one.');
+    async function loadReport() {
+      try {
+        const res = await fetch("tfsec.json");
+        if (!res.ok) throw new Error("tfsec.json not found.");
         const data = await res.json();
 
-        
-        const results = Array.isArray(data?.results) ? data.results : (Array.isArray(data) ? data : []);
-        const counts = results.reduce((acc, r)=>{
-          const s = (r?.severity || r?.severity_level || 'UNKNOWN').toUpperCase();
-          acc[s] = (acc[s]||0)+1; return acc;
-        }, {});
-        const total = results.length;
+        if (!data.results || data.results.length === 0) {
+          document.getElementById("report").innerHTML = "<p>No issues found ✅</p>";
+          return;
+        }
 
-        document.getElementById('summary').innerHTML =
-          `<h2>tfsec Summary</h2>
-           <div class="pill">Total: ${total}</div>
-           ${Object.entries(counts).map(([k,v])=>`<span class="pill">${k}: ${v}</span>`).join('')}
-           <div class="muted">Refresh this page after each push to see updated results.</div>`;
-
-        const rows = results.slice(0,200).map(r=>{
-          const sev = (r?.severity || r?.severity_level || 'UNKNOWN').toUpperCase();
-          const rule = r?.rule_id || r?.rule || '-';
-          const desc = r?.description || r?.long_description || r?.impact || '-';
-          const loc  = r?.location?.filename || r?.path || '-';
-          return `<tr>
-            <td>${sev}</td><td>${rule}</td><td>${loc}</td><td>${desc}</td>
-          </tr>`;
-        }).join('');
-
-        document.getElementById('table').innerHTML =
-          `<h2>Findings</h2>
-           <table>
-             <thead><tr><th>Severity</th><th>Rule</th><th>File</th><th>Description</th></tr></thead>
-             <tbody>${rows || '<tr><td colspan="4">No findings (or empty report).</td></tr>'}</tbody>
-           </table>`;
-      }catch(e){
-        document.getElementById('summary').innerHTML = `<strong>tfsec.json not found yet.</strong>`;
-        document.getElementById('table').innerHTML = `<em>Push a Terraform change to generate the report.</em>`;
+        let html = "";
+        data.results.forEach(finding => {
+          html += `
+            <div class="finding">
+              <div><span class="severity">${finding.severity}</span> – ${finding.rule_id}</div>
+              <div><strong>Resource:</strong> ${finding.resource}</div>
+              <div><strong>Description:</strong> ${finding.description}</div>
+              <div><strong>Resolution:</strong> ${finding.resolution}</div>
+            </div>
+          `;
+        });
+        document.getElementById("report").innerHTML = html;
+      } catch (err) {
+        document.getElementById("report").innerHTML = "<p style='color:red'>tfsec.json not found yet.<br>Push a Terraform change to generate the report.</p>";
       }
     }
-    loadTfsec();
+    loadReport();
   </script>
 </body>
 </html>
