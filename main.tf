@@ -29,5 +29,10 @@ resource "aws_s3_bucket" "example" {
   bucket = "manbeer-security-cspm-test"
   acl    = "public-read"   # ❌ Intentionally risky config (public-read)
 }
+resource "null_resource" "example" {
+  provisioner "local-exec" {
+    command = "echo Hello CSPM"
+  }
+}
 
 
