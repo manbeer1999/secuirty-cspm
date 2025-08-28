@@ -21,5 +21,13 @@ resource "aws_s3_bucket" "example" {
     Environment = "Dev"
   }
 }
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_s3_bucket" "example" {
+  bucket = "manbeer-security-cspm-test"
+  acl    = "public-read"   # ❌ Intentionally risky config (public-read)
+}
 
 
