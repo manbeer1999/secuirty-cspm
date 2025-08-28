@@ -1,59 +1,34 @@
-name: IaC Scan
+name: IaC Security Scan (tfsec)
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
     paths:
-      - '**/*.tf'
-      - '.github/workflows/iac-scan.yml'
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - '**/*.tf'
-      - '.github/workflows/iac-scan.yml'
-  workflow_dispatch:
+      - '**.tf'
+      - .github/workflows/tfsec.yml
 
 jobs:
   tfsec-scan:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write      
-      actions: read
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Checkout repo
+        uses: actions/checkout@v3
 
-      - name: Install tfsec
+      - name: Setup tfsec
         run: |
-          curl -sSL https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install.sh | bash
+          sudo mv tfsec /usr/local/bin/
 
-      - name: Run tfsec (create JSON)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Run tfsec scan
         run: |
-          mkdir -p reports docs
-          tfsec . --format json --out reports/tfsec.json || true
-          
-          cp reports/tfsec.json docs/tfsec.json || true
+          mkdir -p docs
+          tfsec . --format json > docs/tfsec.json
 
-      - name: Upload tfsec report artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: tfsec-report
-          path: reports/tfsec.json
-          if-no-files-found: warn
-
-      - name: Commit report into repo (reports/ & docs/)
-        if: always()
+      - name: Commit tfsec report
         run: |
-          
-          if [[ -n "$(git status --porcelain reports docs)" ]]; then
-            git config user.name  "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add reports/tfsec.json docs/tfsec.json
-            git commit -m "ci: update tfsec report [skip ci]"
-            git push origin HEAD:main
-          else
-            echo "No report changes to commit"
-          fi
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/tfsec.json
+          git commit -m "chore: update tfsec report [skip ci]" || echo "No changes to commit"
+          git push
