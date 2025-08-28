@@ -1,5 +1,4 @@
 terraform {
-  required_version = ">= 1.5.0"
   required_providers {
     aws = {
       source  = "hashicorp/aws"
@@ -12,27 +11,33 @@ provider "aws" {
   region = "us-east-1"
 }
 
-resource "aws_s3_bucket" "example" {
-  bucket = "my-security-cspm-demo-bucket-12345"
-  acl    = "private"
+# Example: Insecure Security Group (tfsec should flag open 0.0.0.0/0 ingress)
+resource "aws_security_group" "insecure_sg" {
+  name        = "insecure-sg"
+  description = "Security group with open ingress"
 
-  tags = {
-    Name        = "CSPM-Demo"
-    Environment = "Dev"
+  ingress {
+    description = "SSH from anywhere"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]   # <-- tfsec will warn
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
-provider "aws" {
-  region = "us-east-1"
+
+# Example: S3 bucket without encryption (tfsec should flag)
+resource "aws_s3_bucket" "insecure_bucket" {
+  bucket = "my-insecure-bucket-${random_id.rand.hex}"
+  acl    = "public-read"   # <-- tfsec will warn
 }
 
-resource "aws_s3_bucket" "example" {
-  bucket = "manbeer-security-cspm-test"
-  acl    = "public-read"   # ❌ Intentionally risky config (public-read)
+resource "random_id" "rand" {
+  byte_length = 4
 }
-resource "null_resource" "example" {
-  provisioner "local-exec" {
-    command = "echo Hello CSPM"
-  }
-}
-
-
