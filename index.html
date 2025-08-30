@@ -1,72 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>CSPM Dashboard – tfsec Report</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>tfsec Security Report</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      margin: 20px;
-      background: #f4f4f4;
-      color: #333;
+      background: #f4f6f8;
+      margin: 0;
+      padding: 20px;
     }
     h1 {
-      color: #005f99;
+      text-align: center;
+      color: #333;
     }
-    pre {
-      background: #222;
-      color: #eee;
-      padding: 15px;
-      border-radius: 8px;
-      overflow-x: auto;
-    }
-    .finding {
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
       background: #fff;
-      margin: 10px 0;
-      padding: 15px;
-      border-left: 5px solid #e74c3c;
-      border-radius: 5px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
     }
-    .severity {
-      font-weight: bold;
-      text-transform: uppercase;
+    th, td {
+      padding: 10px;
+      border: 1px solid #ddd;
+      text-align: left;
+    }
+    th {
+      background: #333;
+      color: #fff;
+    }
+    tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+    .severity-HIGH {
+      background-color: #ffcccc;
+    }
+    .severity-MEDIUM {
+      background-color: #fff3cd;
+    }
+    .severity-LOW {
+      background-color: #d1ecf1;
+    }
+    .footer {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 0.9em;
+      color: #777;
     }
   </style>
 </head>
 <body>
-  <h1>Cloud / IaC Security – CSPM Dashboard</h1>
-  <p>Below are <code>tfsec</code> findings auto-updated by GitHub Actions.</p>
-  <div id="report">Loading tfsec.json...</div>
+  <h1>tfsec IaC Security Report</h1>
+  <table id="report-table">
+    <thead>
+      <tr>
+        <th>Rule ID</th>
+        <th>Description</th>
+        <th>Impact</th>
+        <th>Resolution</th>
+        <th>Severity</th>
+        <th>Location</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <div class="footer">
+    Generated automatically from <code>docs/tfsec.json</code>
+  </div>
 
   <script>
-    async function loadReport() {
-      try {
-        const res = await fetch("tfsec.json");
-        if (!res.ok) throw new Error("tfsec.json not found.");
-        const data = await res.json();
-
-        if (!data.results || data.results.length === 0) {
-          document.getElementById("report").innerHTML = "<p>No issues found ✅</p>";
-          return;
+    fetch('tfsec.json')
+      .then(response => response.json())
+      .then(data => {
+        const tbody = document.querySelector('#report-table tbody');
+        if (data.results && data.results.length > 0) {
+          data.results.forEach(finding => {
+            const tr = document.createElement('tr');
+            tr.classList.add('severity-' + finding.severity.toUpperCase());
+            tr.innerHTML = `
+              <td>${finding.rule_id}</td>
+              <td>${finding.description}</td>
+              <td>${finding.impact}</td>
+              <td>${finding.resolution}</td>
+              <td>${finding.severity}</td>
+              <td>${finding.location.filename}:${finding.location.start_line}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } else {
+          const tr = document.createElement('tr');
+          tr.innerHTML = '<td colspan="6">No findings 🎉</td>';
+          tbody.appendChild(tr);
         }
-
-        let html = "";
-        data.results.forEach(finding => {
-          html += `
-            <div class="finding">
-              <div><span class="severity">${finding.severity}</span> – ${finding.rule_id}</div>
-              <div><strong>Resource:</strong> ${finding.resource}</div>
-              <div><strong>Description:</strong> ${finding.description}</div>
-              <div><strong>Resolution:</strong> ${finding.resolution}</div>
-            </div>
-          `;
-        });
-        document.getElementById("report").innerHTML = html;
-      } catch (err) {
-        document.getElementById("report").innerHTML = "<p style='color:red'>tfsec.json not found yet.<br>Push a Terraform change to generate the report.</p>";
-      }
-    }
-    loadReport();
+      })
+      .catch(error => {
+        console.error('Error loading tfsec.json:', error);
+        const tbody = document.querySelector('#report-table tbody');
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td colspan="6">Failed to load tfsec.json</td>';
+        tbody.appendChild(tr);
+      });
   </script>
 </body>
 </html>
