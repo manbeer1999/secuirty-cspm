@@ -15,21 +15,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+      - name: Run tfsec scan (SARIF + JSON)
+        uses: aquasecurity/tfsec-action@v1.0.0
         with:
-          terraform_version: 1.5.0
+          args: ./iac/terraform --format sarif --out tfsec.sarif
 
-      - name: Install tfsec
-        run: |
-          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
-          tfsec --version
-
-      - name: Run tfsec scan
+      - name: Run tfsec scan (JSON report)
         run: |
           mkdir -p docs
           tfsec ./iac/terraform --format json > docs/tfsec.json
-          tfsec ./iac/terraform --format sarif > tfsec.sarif
 
       - name: Upload SARIF results
         uses: github/codeql-action/upload-sarif@v2
