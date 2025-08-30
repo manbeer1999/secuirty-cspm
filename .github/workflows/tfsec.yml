@@ -1,0 +1,45 @@
+name: tfsec scan
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  tfsec:
+    name: Run tfsec IaC Security Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Install tfsec
+        run: |
+          curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+          tfsec --version
+
+      - name: Run tfsec scan
+        run: |
+          mkdir -p docs
+          tfsec ./iac/terraform --format json > docs/tfsec.json
+          tfsec ./iac/terraform --format sarif > tfsec.sarif
+
+      - name: Upload SARIF results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: tfsec.sarif
+
+      - name: Commit tfsec.json
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/tfsec.json
+          git commit -m "chore: update tfsec report [skip ci]" || echo "No changes to commit"
+          git push origin main || echo "No changes to push"
